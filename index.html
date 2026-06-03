@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Registro Kilometraje – HANASKA</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F4F0;--surface:#FFFFFF;--border:#E2E0D8;--text:#1A1916;--muted:#8A887E;--accent:#1A4D3E;--accent-light:#E8F2EE;--accent-text:#1A4D3E;--danger:#C0392B;--danger-light:#FDECEA;--warning:#D4770A;--warning-light:#FEF3E2;--radius:14px;--radius-sm:8px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--accent);color:white;padding:1.25rem 1.25rem 1rem;position:sticky;top:0;z-index:100}
+.header h1{font-size:18px;font-weight:600}.header-sub{font-size:12px;opacity:0.7;margin-top:2px}
+.tab-bar{background:var(--accent);display:flex;padding:0 1rem;border-bottom:1px solid rgba(255,255,255,0.15)}
+.tab{flex:1;padding:10px 4px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:11px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;transition:color 0.2s}
+.tab svg{width:20px;height:20px}.tab.active{color:white}
+.tab.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:white;border-radius:2px 2px 0 0}
+.content{padding:1rem;max-width:480px;margin:0 auto}
+.section{display:none}.section.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1rem}
+.field{margin-bottom:1rem}.field:last-child{margin-bottom:0}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:500}
+input[type=text],input[type=number],textarea,select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:var(--bg);outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+input:focus,textarea:focus{border-color:var(--accent);background:white}
+input[readonly]{background:#F0EEE8;color:var(--muted);cursor:not-allowed}
+textarea{resize:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;padding:13px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s;border:none;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--accent);color:white}
+.btn-outline{background:white;border:1px solid var(--border);color:var(--text)}
+.btn-gps{background:var(--accent-light);color:var(--accent-text);border:1px solid #B8D8CC;width:100%;padding:10px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-danger{background:var(--danger-light);color:var(--danger);border:1px solid #F5C0BA}
+.photo-km-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.photo-area{border:1.5px dashed var(--border);border-radius:var(--radius-sm);padding:1rem;text-align:center;cursor:pointer;position:relative;overflow:hidden;background:var(--bg);min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color 0.2s}
+.photo-area.required-missing{border-color:var(--danger);background:var(--danger-light)}
+.photo-area.done{border-color:#1A4D3E;border-style:solid;background:var(--accent-light)}
+.photo-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.photo-area svg{width:24px;height:24px;color:var(--muted);margin-bottom:4px}
+.photo-area p{font-size:12px;color:var(--muted)}
+.photo-preview{width:100%;height:90px;object-fit:cover;border-radius:var(--radius-sm);display:none}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center}
+.metric-val{font-size:24px;font-weight:600;font-family:'DM Mono',monospace;color:var(--accent)}
+.metric-lbl{font-size:11px;color:var(--muted);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px}
+.loc-display{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--muted);margin-bottom:8px;min-height:40px;display:flex;align-items:center;gap:8px}
+.loc-display.captured{color:var(--text);background:var(--accent-light);border-color:#B8D8CC}
+.loc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:#1A4D3E}.dot-orange{background:#D4770A}
+.tramo-item{padding:12px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border)}
+.tramo-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.tramo-name{font-weight:500;font-size:13px;flex:1;margin-right:8px}
+.tramo-km{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;white-space:nowrap}
+.tramo-obs{font-size:12px;color:var(--warning);margin-top:4px;font-style:italic}
+.gasto-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+.gasto-item:last-child{border-bottom:none}
+.gasto-val{font-family:'DM Mono',monospace;font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-comb{background:var(--warning-light);color:var(--warning)}
+.badge-peaje{background:#EEF2FF;color:#4338CA}
+.informe-dia{padding:12px 0;border-bottom:1px solid var(--border)}
+.informe-dia:last-child{border-bottom:none}
+.informe-dia-header{display:flex;justify-content:space-between;font-size:14px;font-weight:500;margin-bottom:4px}
+.informe-dia-detail{font-size:12px;color:var(--muted);line-height:1.6}
+.total-row{display:flex;justify-content:space-between;padding:12px 0 0;margin-top:4px;border-top:2px solid var(--text);font-weight:600;font-size:15px}
+.total-val{font-family:'DM Mono',monospace}
+.empty{text-align:center;padding:2rem 0;color:var(--muted);font-size:14px}
+.divider{height:1px;background:var(--border);margin:1rem 0}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.alert{padding:12px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:1rem;display:none}
+.alert-success{background:var(--accent-light);color:var(--accent-text);border:1px solid #B8D8CC;display:block}
+.alert-error{background:var(--danger-light);color:var(--danger);border:1px solid #F5C0BA;display:block}
+.validacion{border-radius:var(--radius-sm);padding:12px;margin-bottom:1rem;font-size:13px}
+.validacion-ok{background:var(--accent-light);border:1px solid #B8D8CC;color:var(--accent-text)}
+.validacion-warn{background:var(--warning-light);border:1px solid #F5D8A0;color:var(--warning)}
+.btn-delete{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0}
+.paso{display:flex;gap:12px;margin-bottom:1rem;align-items:flex-start}
+.paso-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.paso-text{font-size:14px;line-height:1.5}
+.paso-text strong{font-weight:600;color:var(--text)}
+.paso-text span{color:var(--muted);font-size:13px}
+.cierre-nota{background:var(--warning-light);border:1px solid #F5D8A0;border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--warning);margin-bottom:1rem;display:flex;gap:8px;align-items:flex-start}
+.precio-tag{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--muted);margin-bottom:1rem;display:flex;gap:12px;flex-wrap:wrap}
+.precio-tag span{font-weight:600;color:var(--text)}
+.sync-bar{background:var(--accent-light);border:1px solid #B8D8CC;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--accent-text);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h1>Kilometraje HANASKA</h1><div class="header-sub">Conductor: Alex Villamarín</div></div>
+    <div style="font-size:11px;opacity:0.6;font-family:'DM Mono',monospace;text-align:right" id="fecha-hoy"></div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="showTab('registro')" id="t-registro">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    Registro
+  </button>
+  <button class="tab" onclick="showTab('rutas')" id="t-rutas">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    Rutas
+  </button>
+  <button class="tab" onclick="showTab('gastos')" id="t-gastos">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3"/><path d="M9 15h3l8.5-8.5a1.5 1.5 0 00-3-3L9 12v3z"/></svg>
+    Gastos
+  </button>
+  <button class="tab" onclick="showTab('informe')" id="t-informe">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    Informe
+  </button>
+</div>
+
+<div class="content">
+
+  <!-- REGISTRO -->
+  <div id="tab-registro" class="section active">
+    <div id="alert-registro" class="alert"></div>
+    <div id="sync-status" class="sync-bar" style="display:none"></div>
+
+    <div class="card">
+      <div class="card-title">Guía de uso diario</div>
+      <div class="paso"><div class="paso-num">1</div><div class="paso-text"><strong>Al salir de casa</strong><br><span>Toma foto del odómetro e ingresa el km inicial</span></div></div>
+      <div class="paso"><div class="paso-num">2</div><div class="paso-text"><strong>Durante el día — en cada destino</strong><br><span>Ve a "Rutas", captura GPS al salir (origen) y al llegar (destino). Añade observación si es necesario</span></div></div>
+      <div class="paso"><div class="paso-num">3</div><div class="paso-text"><strong>Si cargas combustible o pagas peaje</strong><br><span>Ve a "Gastos" y registra el valor</span></div></div>
+      <div class="paso"><div class="paso-num">4</div><div class="paso-text"><strong>Al llegar a casa — Cierre del día</strong><br><span>Toma foto del odómetro final, ingresa el km y presiona "Cierre del día"</span></div></div>
+      <div class="paso" style="margin-bottom:0"><div class="paso-num">5</div><div class="paso-text"><strong>Fin de semana</strong><br><span>El informe se envía automáticamente cada lunes a las 09:00</span></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Inicio de jornada</div>
+      <div class="field">
+        <label>Foto y km inicial del odómetro <span style="color:var(--danger)">*obligatorio</span></label>
+        <div class="photo-km-row">
+          <div>
+            <div class="photo-area" id="box-ini">
+              <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this,'prev-ini','box-ini')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <p>Toca para foto</p>
+            </div>
+            <img id="prev-ini" class="photo-preview" alt="foto inicial" onclick="resetPhoto('prev-ini','box-ini')" style="margin-top:6px">
+          </div>
+          <div><label style="margin-bottom:6px">Km inicial</label>
+            <input type="number" id="km-ini" placeholder="Ej: 45230" oninput="calcKm()" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cierre-nota">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Completa este paso al final del día, desde tu domicilio
+      </div>
+      <div class="card-title">Cierre de jornada</div>
+      <div class="field">
+        <label>Foto y km final del odómetro <span style="color:var(--danger)">*obligatorio</span></label>
+        <div class="photo-km-row">
+          <div>
+            <div class="photo-area" id="box-fin">
+              <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this,'prev-fin','box-fin')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <p>Toca para foto</p>
+            </div>
+            <img id="prev-fin" class="photo-preview" alt="foto final" onclick="resetPhoto('prev-fin','box-fin')" style="margin-top:6px">
+          </div>
+          <div><label style="margin-bottom:6px">Km final</label>
+            <input type="number" id="km-fin" placeholder="Ej: 45380" oninput="calcKm()" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="metric-val" id="km-dia">0</div><div class="metric-lbl">Km del día</div></div>
+      <div class="metric"><div class="metric-val" id="km-semana">0</div><div class="metric-lbl">Km semana</div></div>
+    </div>
+
+    <div id="validacion-box" style="display:none" class="validacion"></div>
+
+    <button class="btn btn-primary" onclick="guardarDia()">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Cierre del día
+    </button>
+  </div>
+
+  <!-- RUTAS -->
+  <div id="tab-rutas" class="section">
+    <div class="card">
+      <div class="card-title">Registrar tramo</div>
+      <div class="field">
+        <label>Origen — captura al salir</label>
+        <div class="loc-display" id="loc-origen"><div class="loc-dot dot-green"></div><span id="txt-origen">Sin capturar</span></div>
+        <button class="btn-gps" onclick="capturarUbicacion('origen')">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          Capturar origen con GPS
+        </button>
+      </div>
+      <div class="field">
+        <label>Destino — captura al llegar</label>
+        <div class="loc-display" id="loc-destino"><div class="loc-dot dot-orange"></div><span id="txt-destino">Sin capturar</span></div>
+        <button class="btn-gps" onclick="capturarUbicacion('destino')">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          Capturar destino con GPS
+        </button>
+      </div>
+      <div class="field">
+        <label>Km estimados por ruta real <span style="font-size:11px;color:var(--muted)">(calculado automáticamente)</span></label>
+        <input type="number" id="km-ruta" placeholder="Se calcula al capturar origen y destino" readonly>
+      </div>
+      <div class="field">
+        <label>Observación / justificación del tramo</label>
+        <textarea id="obs-ruta" placeholder="Ej: Traslado de producto sobrante a bodega..." rows="3"></textarea>
+      </div>
+      <button class="btn btn-outline" onclick="agregarTramo()">+ Agregar tramo</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Tramos del día &nbsp;<span id="km-tramos-total" style="font-family:'DM Mono',monospace;color:var(--accent);font-size:13px"></span></div>
+      <div id="lista-rutas"><div class="empty">Sin tramos registrados aún</div></div>
+    </div>
+  </div>
+
+  <!-- GASTOS -->
+  <div id="tab-gastos" class="section">
+    <div class="card">
+      <div class="card-title">Carga de combustible</div>
+      <div class="precio-tag">Precios vigentes Ecuador (mayo 2026): <span>Extra $3.164/gal</span><span>Súper $4.81/gal</span><span>Diésel $3.103/gal</span></div>
+      <div class="field">
+        <label>Tipo de combustible</label>
+        <select id="tipo-comb" onchange="calcGalones()">
+          <option value="3.164">Extra / Ecopaís — $3.164/gal</option>
+          <option value="4.81">Súper Premium — $4.81/gal</option>
+          <option value="3.103">Diésel — $3.103/gal</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Costo total ($)</label><input type="number" id="costo-comb" placeholder="Ej: 20.00" inputmode="decimal" oninput="calcGalones()"></div>
+        <div class="field"><label>Galones <span style="font-size:11px">(automático)</span></label><input type="number" id="gal" readonly placeholder="—"></div>
+      </div>
+      <div class="field"><label>Estación / lugar</label><input type="text" id="estacion" placeholder="Ej: Petroecuador Panamericana"></div>
+      <button class="btn btn-outline" onclick="agregarCombustible()">Registrar combustible</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Peaje</div>
+      <div class="row2">
+        <div class="field"><label>Lugar</label><input type="text" id="peaje-lugar" placeholder="Ej: Peaje Pifo"></div>
+        <div class="field"><label>Valor ($)</label><input type="number" id="peaje-valor" placeholder="Ej: 0.50" inputmode="decimal"></div>
+      </div>
+      <button class="btn btn-outline" onclick="agregarPeaje()">Registrar peaje</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Gastos del día</div>
+      <div id="lista-gastos"><div class="empty">Sin gastos registrados aún</div></div>
+    </div>
+  </div>
+
+  <!-- INFORME -->
+  <div id="tab-informe" class="section">
+    <div id="sync-informe" class="sync-bar" style="display:none"></div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-val" id="inf-km">0</div><div class="metric-lbl">Km totales</div></div>
+      <div class="metric"><div class="metric-val" id="inf-dias">0</div><div class="metric-lbl">Días</div></div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-val" id="inf-comb" style="font-size:20px">$0.00</div><div class="metric-lbl">Combustible</div></div>
+      <div class="metric"><div class="metric-val" id="inf-peajes" style="font-size:20px">$0.00</div><div class="metric-lbl">Peajes</div></div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-val" id="inf-gal" style="font-size:20px">0.00</div><div class="metric-lbl">Galones</div></div>
+      <div class="metric"><div class="metric-val" id="inf-rend" style="font-size:20px">—</div><div class="metric-lbl">Km / Galón</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detalle por día</div>
+      <div id="tabla-informe"><div class="empty">Cargando datos...</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem">
+      <button class="btn btn-primary" style="flex:1" onclick="exportarExcel()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar Excel
+      </button>
+      <button class="btn btn-outline" style="flex:1" onclick="cargarDesdeSheet()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.57"/></svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz3nqd36hx6iPOs2v8hViYDdpD1BMCmNx51mjHjz5UsbrX9VBWuSzihVacnevLfhh5wUg/exec';
+var registros=[];
+var tramosHoy=[];
+var gastosHoy=[];
+var coords={origen:null,destino:null};
+var semanaInicio='';
+var fotoIniOk=false;
+var fotoFinOk=false;
+
+try{semanaInicio=localStorage.getItem('hsk_semana4')||'';}catch(e){}
+
+var hoy=new Date();
+document.getElementById('fecha-hoy').textContent=hoy.toLocaleDateString('es-EC',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+if(!semanaInicio){semanaInicio=hoy.toLocaleDateString('es-EC');try{localStorage.setItem('hsk_semana4',semanaInicio);}catch(e){}}
+
+// Cargar datos desde Sheet al iniciar
+cargarDesdeSheet();
+
+function showTab(t){
+  document.querySelectorAll('.tab,.section').forEach(function(e){e.classList.remove('active');});
+  document.getElementById('t-'+t).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='informe'){cargarDesdeSheet();}
+  if(t==='rutas')actualizarKmTramos();
+}
+
+function showAlert(id,msg,tipo){
+  var el=document.getElementById(id);
+  el.className='alert alert-'+tipo;
+  el.textContent=msg;
+  setTimeout(function(){el.className='alert';},4000);
+}
+
+function showSync(id,msg){
+  var el=document.getElementById(id);
+  el.style.display='flex';
+  el.innerHTML='<span class="spinner"></span> '+msg;
+}
+function hideSync(id){document.getElementById(id).style.display='none';}
+
+function previewPhoto(input,prevId,boxId){
+  var file=input.files[0];if(!file)return;
+  var img=document.getElementById(prevId);
+  img.src=URL.createObjectURL(file);img.style.display='block';
+  document.getElementById(boxId).style.display='none';
+  if(boxId==='box-ini')fotoIniOk=true;
+  if(boxId==='box-fin')fotoFinOk=true;
+}
+function resetPhoto(prevId,boxId){
+  document.getElementById(prevId).style.display='none';
+  document.getElementById(boxId).style.display='';
+  if(boxId==='box-ini')fotoIniOk=false;
+  if(boxId==='box-fin')fotoFinOk=false;
+}
+
+function calcKm(){
+  var ini=parseFloat(document.getElementById('km-ini').value)||0;
+  var fin=parseFloat(document.getElementById('km-fin').value)||0;
+  var dia=fin>ini?Math.round(fin-ini):0;
+  document.getElementById('km-dia').textContent=dia;
+  var sem=registros.reduce(function(a,r){return a+(r.km||0);},0)+dia;
+  document.getElementById('km-semana').textContent=sem;
+  var kmGPS=tramosHoy.reduce(function(a,t){return a+(t.km||0);},0);
+  var vbox=document.getElementById('validacion-box');
+  if(dia>0&&kmGPS>0){
+    var diff=Math.abs(dia-kmGPS);
+    vbox.style.display='block';
+    if(diff<=5){
+      vbox.className='validacion validacion-ok';
+      vbox.innerHTML='✓ Odómetro ('+dia+' km) y GPS ('+kmGPS+' km) coinciden correctamente.';
+    } else {
+      vbox.className='validacion validacion-warn';
+      vbox.innerHTML='⚠ Diferencia de '+diff+' km entre odómetro ('+dia+' km) y GPS ('+kmGPS+' km). Revisa los tramos.';
+    }
+  } else { vbox.style.display='none'; }
+}
+
+function calcGalones(){
+  var costo=parseFloat(document.getElementById('costo-comb').value)||0;
+  var precio=parseFloat(document.getElementById('tipo-comb').value)||3.164;
+  document.getElementById('gal').value=costo>0?(costo/precio).toFixed(3):'';
+}
+
+function capturarUbicacion(tipo){
+  var txtEl=document.getElementById('txt-'+tipo);
+  var boxEl=document.getElementById('loc-'+tipo);
+  txtEl.innerHTML='<span class="spinner"></span> Obteniendo ubicación...';
+  boxEl.classList.remove('captured');
+  if(!navigator.geolocation){txtEl.textContent='GPS no disponible';return;}
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      var lat=pos.coords.latitude;var lon=pos.coords.longitude;
+      coords[tipo]={lat:lat,lon:lon};
+      fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&accept-language=es')
+        .then(function(r){return r.json();})
+        .then(function(data){
+          var addr=data.address||{};
+          var partes=[addr.road||addr.pedestrian||'',addr.suburb||addr.neighbourhood||'',addr.city||addr.town||''].filter(Boolean);
+          var texto=partes.length?partes.join(', '):('Lat: '+lat.toFixed(5)+', Lon: '+lon.toFixed(5));
+          coords[tipo].nombre=texto;txtEl.textContent=texto;boxEl.classList.add('captured');
+          if(coords.origen&&coords.destino)calcDistanciaRuta();
+        })
+        .catch(function(){
+          coords[tipo].nombre='Lat: '+lat.toFixed(5)+', Lon: '+lon.toFixed(5);
+          txtEl.textContent=coords[tipo].nombre;boxEl.classList.add('captured');
+          if(coords.origen&&coords.destino)calcDistanciaRuta();
+        });
+    },
+    function(err){
+      var msgs={1:'Permiso denegado – activa el GPS',2:'Ubicación no disponible',3:'Tiempo agotado'};
+      txtEl.textContent=msgs[err.code]||'Error de ubicación';
+    },
+    {enableHighAccuracy:true,timeout:12000}
+  );
+}
+
+function calcDistanciaRuta(){
+  var o=coords.origen;var d=coords.destino;if(!o||!d)return;
+  var kmInput=document.getElementById('km-ruta');
+  kmInput.value='Calculando...';
+  fetch('https://router.project-osrm.org/route/v1/driving/'+o.lon+','+o.lat+';'+d.lon+','+d.lat+'?overview=false')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.routes&&data.routes[0]){kmInput.value=Math.round(data.routes[0].distance/1000*10)/10;}
+      else{kmInput.value=calcDistanciaLineal(o.lat,o.lon,d.lat,d.lon);}
+    })
+    .catch(function(){kmInput.value=calcDistanciaLineal(o.lat,o.lon,d.lat,d.lon);});
+}
+
+function calcDistanciaLineal(lat1,lon1,lat2,lon2){
+  var R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))*10)/10;
+}
+
+function agregarTramo(){
+  var km=parseFloat(document.getElementById('km-ruta').value)||0;
+  var obs=document.getElementById('obs-ruta').value.trim();
+  var origen=coords.origen?coords.origen.nombre:'Sin capturar';
+  var destino=coords.destino?coords.destino.nombre:'Sin capturar';
+  if(origen==='Sin capturar'&&destino==='Sin capturar'){alert('Captura el origen y destino con GPS');return;}
+  if(!km){alert('Espera a que se calcule la distancia');return;}
+  tramosHoy.push({origen:origen,destino:destino,km:km,obs:obs});
+  document.getElementById('km-ruta').value='';document.getElementById('obs-ruta').value='';
+  document.getElementById('txt-origen').textContent='Sin capturar';document.getElementById('txt-destino').textContent='Sin capturar';
+  document.getElementById('loc-origen').classList.remove('captured');document.getElementById('loc-destino').classList.remove('captured');
+  coords={origen:null,destino:null};
+  renderTramos();calcKm();
+}
+
+function actualizarKmTramos(){
+  var total=tramosHoy.reduce(function(a,t){return a+(t.km||0);},0);
+  document.getElementById('km-tramos-total').textContent=total?'— '+total+' km GPS':'';
+}
+
+function renderTramos(){
+  actualizarKmTramos();
+  var c=document.getElementById('lista-rutas');
+  if(!tramosHoy.length){c.innerHTML='<div class="empty">Sin tramos registrados aún</div>';return;}
+  c.innerHTML=tramosHoy.map(function(t,i){
+    return '<div class="tramo-item"><div class="tramo-header"><div class="tramo-name">'+t.origen+' → '+t.destino+'</div><div style="display:flex;align-items:center;gap:4px"><span class="tramo-km">'+t.km+' km</span><button class="btn-delete" onclick="eliminarTramo('+i+')"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>'+(t.obs?'<div class="tramo-obs">📝 '+t.obs+'</div>':'')+'</div>';
+  }).join('');
+}
+
+function eliminarTramo(i){tramosHoy.splice(i,1);renderTramos();calcKm();}
+
+function guardarDia(){
+  var ini=parseFloat(document.getElementById('km-ini').value)||0;
+  var fin=parseFloat(document.getElementById('km-fin').value)||0;
+
+  // Validar fotos obligatorias
+  if(!fotoIniOk){
+    document.getElementById('box-ini').classList.add('required-missing');
+    showAlert('alert-registro','La foto del odómetro inicial es obligatoria','error');return;
+  }
+  if(!fotoFinOk){
+    document.getElementById('box-fin').classList.add('required-missing');
+    showAlert('alert-registro','La foto del odómetro final es obligatoria','error');return;
+  }
+  if(!ini||!fin){showAlert('alert-registro','Ingresa el km inicial y final del odómetro','error');return;}
+  if(fin<ini){showAlert('alert-registro','El km final debe ser mayor al inicial','error');return;}
+
+  var diasNombre=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  var fechaStr=hoy.toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
+  var diaNombre=diasNombre[hoy.getDay()];
+  var km=Math.round(fin-ini);
+  var kmGPS=tramosHoy.reduce(function(a,t){return a+(t.km||0);},0);
+  var combustible=gastosHoy.filter(function(g){return g.tipo==='comb';}).reduce(function(a,g){return a+g.valor;},0);
+  var galones=gastosHoy.filter(function(g){return g.tipo==='comb';}).reduce(function(a,g){return a+g.gal;},0);
+  var peajes=gastosHoy.filter(function(g){return g.tipo==='peaje';}).reduce(function(a,g){return a+g.valor;},0);
+  var rutaResumen=tramosHoy.map(function(t){return t.destino;}).join(', ');
+  var novedades=tramosHoy.filter(function(t){return t.obs;}).map(function(t){return '* '+t.obs;}).join(' ');
+  var diff=Math.abs(km-kmGPS);
+  var validacion=kmGPS>0?(diff<=5?'OK – coinciden':'REVISAR – diferencia '+diff+' km'):'Sin GPS';
+
+  var registro={tipo:'jornada',fecha:fechaStr,dia:diaNombre,kmIni:ini,kmFin:fin,km:km,kmGPS:kmGPS,
+    validacion:validacion,tramos:tramosHoy.slice(),gastos:gastosHoy.slice(),
+    combustible:combustible,galones:parseFloat(galones.toFixed(3)),peajes:peajes,
+    rutaResumen:rutaResumen,novedades:novedades,semanaInicio:semanaInicio};
+
+  // Enviar a Google Sheet
+  showSync('sync-status','Guardando en la nube...');
+  fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(registro)})
+    .then(function(r){return r.json();})
+    .then(function(res){
+      hideSync('sync-status');
+      if(res.status==='ok'){
+        registros.push(registro);
+        limpiarFormulario();
+        showAlert('alert-registro','Jornada guardada y sincronizada correctamente ✓','success');
+      } else {
+        showAlert('alert-registro','Error al sincronizar: '+res.mensaje,'error');
+      }
+    })
+    .catch(function(){
+      hideSync('sync-status');
+      // Guardar local como respaldo
+      registros.push(registro);
+      limpiarFormulario();
+      showAlert('alert-registro','Guardado localmente (sin conexión). Se sincronizará luego.','error');
+    });
+}
+
+function limpiarFormulario(){
+  tramosHoy=[];gastosHoy=[];fotoIniOk=false;fotoFinOk=false;
+  document.getElementById('km-ini').value='';document.getElementById('km-fin').value='';
+  document.getElementById('km-dia').textContent='0';
+  document.getElementById('validacion-box').style.display='none';
+  document.getElementById('lista-rutas').innerHTML='<div class="empty">Sin tramos registrados aún</div>';
+  document.getElementById('lista-gastos').innerHTML='<div class="empty">Sin gastos registrados aún</div>';
+  document.getElementById('prev-ini').style.display='none';document.getElementById('box-ini').style.display='';
+  document.getElementById('prev-fin').style.display='none';document.getElementById('box-fin').style.display='';
+  document.getElementById('box-ini').classList.remove('required-missing');
+  document.getElementById('box-fin').classList.remove('required-missing');
+  calcKm();
+}
+
+function agregarCombustible(){
+  var gal=parseFloat(document.getElementById('gal').value)||0;
+  var costo=parseFloat(document.getElementById('costo-comb').value)||0;
+  var est=document.getElementById('estacion').value.trim();
+  var tipo=document.getElementById('tipo-comb').options[document.getElementById('tipo-comb').selectedIndex].text.split('—')[0].trim();
+  if(!costo){alert('Ingresa el costo');return;}
+  gastosHoy.push({tipo:'comb',desc:tipo+(est?' – '+est:''),valor:costo,gal:gal});
+  document.getElementById('gal').value='';document.getElementById('costo-comb').value='';document.getElementById('estacion').value='';
+  renderGastos();
+}
+
+function agregarPeaje(){
+  var lugar=document.getElementById('peaje-lugar').value.trim();
+  var valor=parseFloat(document.getElementById('peaje-valor').value)||0;
+  if(!valor){alert('Ingresa el valor del peaje');return;}
+  gastosHoy.push({tipo:'peaje',desc:'Peaje'+(lugar?' – '+lugar:''),valor:valor,gal:0});
+  document.getElementById('peaje-lugar').value='';document.getElementById('peaje-valor').value='';
+  renderGastos();
+}
+
+function renderGastos(){
+  var c=document.getElementById('lista-gastos');
+  if(!gastosHoy.length){c.innerHTML='<div class="empty">Sin gastos registrados aún</div>';return;}
+  c.innerHTML=gastosHoy.map(function(g){
+    var badge=g.tipo==='comb'?'<span class="badge badge-comb">Combustible</span>':'<span class="badge badge-peaje">Peaje</span>';
+    return '<div class="gasto-item"><div>'+badge+'<div style="font-size:13px;margin-top:4px">'+g.desc+(g.gal?' ('+g.gal.toFixed(3)+' gal)':'')+'</div></div><span class="gasto-val">$'+g.valor.toFixed(2)+'</span></div>';
+  }).join('');
+}
+
+function cargarDesdeSheet(){
+  showSync('sync-informe','Cargando datos desde la nube...');
+  document.getElementById('tabla-informe').innerHTML='<div class="empty">Cargando...</div>';
+  fetch(SCRIPT_URL)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      hideSync('sync-informe');
+      registros=data.registros||[];
+      actualizarInforme();
+    })
+    .catch(function(){
+      hideSync('sync-informe');
+      document.getElementById('tabla-informe').innerHTML='<div class="empty">Sin conexión. Intenta de nuevo.</div>';
+    });
+}
+
+function exportarExcel(){
+  if(!registros.length){alert('No hay registros para exportar. Registra al menos una jornada primero.');return;}
+  var totKm=registros.reduce(function(a,r){return a+Number(r.km||0);},0);
+  var totComb=registros.reduce(function(a,r){return a+Number(r.combustible||0);},0);
+  var totGal=registros.reduce(function(a,r){return a+Number(r.galones||0);},0);
+  var totPeaje=registros.reduce(function(a,r){return a+Number(r.peajes||0);},0);
+  var rend=totGal>0?(totKm/totGal).toFixed(2):'—';
+  var fechaFin=registros[registros.length-1].fecha||'';
+  var titulo='SEMANA: '+semanaInicio+' AL '+fechaFin;
+  var wsData=[
+    [titulo,'','','','','','','','','',''],
+    ['FECHA','KM INICIAL','KM FINAL','TOTAL KM','REVISIÓN ADM','RUTA','NOVEDADES','COMB.','GAL.','PEAJE','VALIDACIÓN GPS']
+  ];
+  registros.forEach(function(r){
+    wsData.push([
+      (r.dia||'')+' '+( r.fecha||''),
+      r.kmIni,r.kmFin,r.km,
+      'Odóm: '+r.km+' km | GPS: '+(r.kmGPS||0)+' km',
+      r.rutaResumen||'—',
+      r.novedades||'',
+      r.combustible||'',
+      r.galones||'',
+      r.peajes||'',
+      r.validacion||''
+    ]);
+  });
+  wsData.push(['TOTAL','','',totKm,'','','',totComb.toFixed(2),totGal.toFixed(3),totPeaje.toFixed(2),'']);
+  wsData.push(['','','','','','','','','KM/GAL',rend,'']);
+  wsData.push(['']);
+  wsData.push(['Conductor: Alex Villamarín']);
+  wsData.push(['Firma:','_________________________________']);
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:20},{wch:12},{wch:12},{wch:10},{wch:30},{wch:40},{wch:45},{wch:8},{wch:8},{wch:8},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,'Control Km',ws);
+  var fn='CONTROL_KILOMETROS_'+semanaInicio.replace(/\//g,'-')+'.xlsx';
+  XLSX.writeFile(wb,fn);
+}
+
+function actualizarInforme(){
+  var km=registros.reduce(function(a,r){return a+Number(r.km||0);},0);
+  var comb=registros.reduce(function(a,r){return a+Number(r.combustible||0);},0);
+  var peaj=registros.reduce(function(a,r){return a+Number(r.peajes||0);},0);
+  var gal=registros.reduce(function(a,r){return a+Number(r.galones||0);},0);
+  var rend=gal>0?(km/gal).toFixed(1):'—';
+  document.getElementById('inf-km').textContent=km;
+  document.getElementById('inf-dias').textContent=registros.length;
+  document.getElementById('inf-comb').textContent='$'+comb.toFixed(2);
+  document.getElementById('inf-peajes').textContent='$'+peaj.toFixed(2);
+  document.getElementById('inf-gal').textContent=gal.toFixed(3);
+  document.getElementById('inf-rend').textContent=rend;
+  var tabla=document.getElementById('tabla-informe');
+  if(!registros.length){tabla.innerHTML='<div class="empty">Sin registros esta semana</div>';return;}
+  var html=registros.map(function(r){
+    var rendDia=Number(r.galones)>0?(Number(r.km)/Number(r.galones)).toFixed(1)+' km/gal':'—';
+    var valColor=(r.validacion||'').indexOf('OK')>=0?'#1A4D3E':'#D4770A';
+    return '<div class="informe-dia"><div class="informe-dia-header"><span>'+(r.dia||'')+' '+(r.fecha||'')+'</span><span style="font-family:\'DM Mono\',monospace;color:#1A4D3E">'+r.km+' km</span></div><div class="informe-dia-detail">'+(r.rutaResumen?'Ruta: '+r.rutaResumen+'<br>':'')+(Number(r.combustible)?'Comb: $'+Number(r.combustible).toFixed(2)+' ('+Number(r.galones).toFixed(3)+' gal) | Rend: '+rendDia+'<br>':'')+(Number(r.peajes)?'Peajes: $'+Number(r.peajes).toFixed(2)+'<br>':'')+'<span style="color:'+valColor+'">GPS: '+(r.validacion||'—')+'</span></div></div>';
+  }).join('');
+  var totGal=registros.reduce(function(a,r){return a+Number(r.galones||0);},0);
+  var totRend=totGal>0?(km/totGal).toFixed(1)+' km/gal':'—';
+  html+='<div class="total-row"><span>Total semana</span><span class="total-val">'+km+' km &nbsp;|&nbsp; '+totRend+'</span></div>';
+  tabla.innerHTML=html;
+}
+
+calcKm();
+</script>
+</body>
+</html>
