@@ -192,21 +192,30 @@ textarea{resize:none}
   <div id="tab-rutas" class="section">
     <div class="card">
       <div class="card-title">Registrar tramo</div>
+
       <div class="field">
-        <label>Origen — captura al salir</label>
-        <div class="loc-display" id="loc-origen"><div class="loc-dot dot-green"></div><span id="txt-origen">Sin capturar</span></div>
-        <button class="btn-gps" onclick="capturarUbicacion('origen')">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-          Capturar origen con GPS
+        <label>Origen <span style="color:var(--muted);font-size:11px">(busca o escribe el lugar)</span></label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="input-origen" placeholder="Busca un lugar..." autocomplete="off" style="flex:1">
+          <button class="btn-gps" style="width:auto;padding:10px 12px" onclick="capturarGPS('origen')" title="Usar GPS">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </button>
+        </div>
+        <div class="loc-display" id="loc-origen" style="display:none"><div class="loc-dot dot-green"></div><span id="txt-origen"></span></div>
+        <button class="btn-outline" style="font-size:13px;padding:8px;margin-top:4px" onclick="guardarOrigen()">
+          ✓ Guardar origen
         </button>
       </div>
+
       <div class="field">
-        <label>Destino — captura al llegar</label>
-        <div class="loc-display" id="loc-destino"><div class="loc-dot dot-orange"></div><span id="txt-destino">Sin capturar</span></div>
-        <button class="btn-gps" onclick="capturarUbicacion('destino')">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-          Capturar destino con GPS
-        </button>
+        <label>Destino <span style="color:var(--muted);font-size:11px">(busca o escribe el lugar al llegar)</span></label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="input-destino" placeholder="Busca un lugar..." autocomplete="off" style="flex:1">
+          <button class="btn-gps" style="width:auto;padding:10px 12px" onclick="capturarGPS('destino')" title="Usar GPS">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </button>
+        </div>
+        <div class="loc-display" id="loc-destino" style="display:none"><div class="loc-dot dot-orange"></div><span id="txt-destino"></span></div>
       </div>
       <div class="field">
         <label>Km estimados por ruta real <span style="font-size:11px;color:var(--muted)">(calculado automáticamente)</span></label>
@@ -291,7 +300,8 @@ textarea{resize:none}
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi9L64edxUUWTA3_eNEqPuh_8dp5494ZA&libraries=places&language=es&region=EC" async defer onload="initMaps()"></script>
 <script>
 var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz3nqd36hx6iPOs2v8hViYDdpD1BMCmNx51mjHjz5UsbrX9VBWuSzihVacnevLfhh5wUg/exec';
 var registros=[];
@@ -303,6 +313,18 @@ var fotoIniOk=false;
 var fotoFinOk=false;
 
 try{semanaInicio=localStorage.getItem('hsk_semana4')||'';}catch(e){}
+
+// Recuperar origen guardado si existe
+try {
+  var origenGuardado = localStorage.getItem('hsk_origen');
+  if (origenGuardado) {
+    coords.origen = JSON.parse(origenGuardado);
+    document.getElementById('input-origen').value = coords.origen.nombre;
+    document.getElementById('txt-origen').textContent = coords.origen.nombre;
+    document.getElementById('loc-origen').style.display = 'flex';
+    document.getElementById('loc-origen').classList.add('captured');
+  }
+} catch(e) {}
 
 var hoy=new Date();
 document.getElementById('fecha-hoy').textContent=hoy.toLocaleDateString('es-EC',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
@@ -376,36 +398,93 @@ function calcGalones(){
   document.getElementById('gal').value=costo>0?(costo/precio).toFixed(3):'';
 }
 
-function capturarUbicacion(tipo){
-  var txtEl=document.getElementById('txt-'+tipo);
-  var boxEl=document.getElementById('loc-'+tipo);
-  txtEl.innerHTML='<span class="spinner"></span> Obteniendo ubicación...';
-  boxEl.classList.remove('captured');
-  if(!navigator.geolocation){txtEl.textContent='GPS no disponible';return;}
+function initMaps() {
+  var origenInput = document.getElementById('input-origen');
+  var destinoInput = document.getElementById('input-destino');
+  var options = { componentRestrictions: { country: 'ec' }, fields: ['geometry','name','formatted_address'] };
+
+  var autoOrigen = new google.maps.places.Autocomplete(origenInput, options);
+  autoOrigen.addListener('place_changed', function() {
+    var place = autoOrigen.getPlace();
+    if (!place.geometry) return;
+    var nombre = place.name || place.formatted_address;
+    coords.origen = { lat: place.geometry.location.lat(), lon: place.geometry.location.lng(), nombre: nombre };
+    document.getElementById('txt-origen').textContent = nombre;
+    document.getElementById('loc-origen').style.display = 'flex';
+    document.getElementById('loc-origen').classList.add('captured');
+    if (coords.origen && coords.destino) calcDistanciaRuta();
+  });
+
+  var autoDestino = new google.maps.places.Autocomplete(destinoInput, options);
+  autoDestino.addListener('place_changed', function() {
+    var place = autoDestino.getPlace();
+    if (!place.geometry) return;
+    var nombre = place.name || place.formatted_address;
+    coords.destino = { lat: place.geometry.location.lat(), lon: place.geometry.location.lng(), nombre: nombre };
+    document.getElementById('txt-destino').textContent = nombre;
+    document.getElementById('loc-destino').style.display = 'flex';
+    document.getElementById('loc-destino').classList.add('captured');
+    if (coords.origen && coords.destino) calcDistanciaRuta();
+  });
+}
+
+function guardarOrigen() {
+  var val = document.getElementById('input-origen').value.trim();
+  if (!val) { alert('Escribe o selecciona el origen'); return; }
+  if (!coords.origen) {
+    coords.origen = { lat: null, lon: null, nombre: val };
+  } else {
+    coords.origen.nombre = val;
+  }
+  document.getElementById('txt-origen').textContent = coords.origen.nombre;
+  document.getElementById('loc-origen').style.display = 'flex';
+  document.getElementById('loc-origen').classList.add('captured');
+  try { localStorage.setItem('hsk_origen', JSON.stringify(coords.origen)); } catch(e) {}
+  showAlert('alert-registro', 'Origen guardado: ' + coords.origen.nombre, 'success');
+}
+
+function capturarGPS(tipo) {
+  var txtEl = document.getElementById('txt-' + tipo);
+  var boxEl = document.getElementById('loc-' + tipo);
+  var inputEl = document.getElementById('input-' + tipo);
+  if (!navigator.geolocation) { alert('GPS no disponible'); return; }
+  inputEl.value = 'Obteniendo ubicación...';
   navigator.geolocation.getCurrentPosition(
-    function(pos){
-      var lat=pos.coords.latitude;var lon=pos.coords.longitude;
-      coords[tipo]={lat:lat,lon:lon};
-      fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&accept-language=es')
-        .then(function(r){return r.json();})
-        .then(function(data){
-          var addr=data.address||{};
-          var partes=[addr.road||addr.pedestrian||'',addr.suburb||addr.neighbourhood||'',addr.city||addr.town||''].filter(Boolean);
-          var texto=partes.length?partes.join(', '):('Lat: '+lat.toFixed(5)+', Lon: '+lon.toFixed(5));
-          coords[tipo].nombre=texto;txtEl.textContent=texto;boxEl.classList.add('captured');
-          if(coords.origen&&coords.destino)calcDistanciaRuta();
-        })
-        .catch(function(){
-          coords[tipo].nombre='Lat: '+lat.toFixed(5)+', Lon: '+lon.toFixed(5);
-          txtEl.textContent=coords[tipo].nombre;boxEl.classList.add('captured');
-          if(coords.origen&&coords.destino)calcDistanciaRuta();
-        });
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lon = pos.coords.longitude;
+      var geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: lat, lng: lon }, language: 'es' }, function(results, status) {
+        var nombre = '';
+        if (status === 'OK' && results[0]) {
+          var comp = results[0].address_components;
+          var calle = '', barrio = '', ciudad = '';
+          for (var i = 0; i < comp.length; i++) {
+            if (comp[i].types.indexOf('route') >= 0) calle = comp[i].long_name;
+            if (comp[i].types.indexOf('sublocality') >= 0 || comp[i].types.indexOf('neighborhood') >= 0) barrio = comp[i].long_name;
+            if (comp[i].types.indexOf('locality') >= 0) ciudad = comp[i].long_name;
+          }
+          nombre = [calle, barrio, ciudad].filter(Boolean).join(', ') || results[0].formatted_address;
+        } else {
+          nombre = 'Lat: ' + lat.toFixed(5) + ', Lon: ' + lon.toFixed(5);
+        }
+        coords[tipo] = { lat: lat, lon: lon, nombre: nombre };
+        inputEl.value = nombre;
+        txtEl.textContent = nombre;
+        boxEl.style.display = 'flex';
+        boxEl.classList.add('captured');
+        if (tipo === 'origen') {
+          try { localStorage.setItem('hsk_origen', JSON.stringify(coords[tipo])); } catch(e) {}
+        }
+        if (coords.origen && coords.destino) calcDistanciaRuta();
+      });
     },
-    function(err){
-      var msgs={1:'Permiso denegado – activa el GPS',2:'Ubicación no disponible',3:'Tiempo agotado'};
-      txtEl.textContent=msgs[err.code]||'Error de ubicación';
+    function(err) {
+      var msgs = { 1: 'Permiso denegado', 2: 'Ubicación no disponible', 3: 'Tiempo agotado' };
+      inputEl.value = '';
+      alert(msgs[err.code] || 'Error de GPS');
     },
-    {enableHighAccuracy:true,timeout:12000}
+    { enableHighAccuracy: true, timeout: 20000 }
   );
 }
 
@@ -437,8 +516,11 @@ function agregarTramo(){
   if(!km){alert('Espera a que se calcule la distancia');return;}
   tramosHoy.push({origen:origen,destino:destino,km:km,obs:obs});
   document.getElementById('km-ruta').value='';document.getElementById('obs-ruta').value='';
-  document.getElementById('txt-origen').textContent='Sin capturar';document.getElementById('txt-destino').textContent='Sin capturar';
+  document.getElementById('input-origen').value='';document.getElementById('input-destino').value='';
+  document.getElementById('txt-origen').textContent='';document.getElementById('txt-destino').textContent='';
+  document.getElementById('loc-origen').style.display='none';document.getElementById('loc-destino').style.display='none';
   document.getElementById('loc-origen').classList.remove('captured');document.getElementById('loc-destino').classList.remove('captured');
+  try{localStorage.removeItem('hsk_origen');}catch(e){}
   coords={origen:null,destino:null};
   renderTramos();calcKm();
 }
@@ -577,41 +659,22 @@ function cargarDesdeSheet(){
 
 function exportarExcel(){
   if(!registros.length){alert('No hay registros para exportar. Registra al menos una jornada primero.');return;}
-  var totKm=registros.reduce(function(a,r){return a+Number(r.km||0);},0);
-  var totComb=registros.reduce(function(a,r){return a+Number(r.combustible||0);},0);
-  var totGal=registros.reduce(function(a,r){return a+Number(r.galones||0);},0);
-  var totPeaje=registros.reduce(function(a,r){return a+Number(r.peajes||0);},0);
-  var rend=totGal>0?(totKm/totGal).toFixed(2):'—';
-  var fechaFin=registros[registros.length-1].fecha||'';
-  var titulo='SEMANA: '+semanaInicio+' AL '+fechaFin;
-  var wsData=[
-    [titulo,'','','','','','','','','',''],
-    ['FECHA','KM INICIAL','KM FINAL','TOTAL KM','REVISIÓN ADM','RUTA','NOVEDADES','COMB.','GAL.','PEAJE','VALIDACIÓN GPS']
-  ];
-  registros.forEach(function(r){
-    wsData.push([
-      (r.dia||'')+' '+( r.fecha||''),
-      r.kmIni,r.kmFin,r.km,
-      'Odóm: '+r.km+' km | GPS: '+(r.kmGPS||0)+' km',
-      r.rutaResumen||'—',
-      r.novedades||'',
-      r.combustible||'',
-      r.galones||'',
-      r.peajes||'',
-      r.validacion||''
-    ]);
-  });
-  wsData.push(['TOTAL','','',totKm,'','','',totComb.toFixed(2),totGal.toFixed(3),totPeaje.toFixed(2),'']);
-  wsData.push(['','','','','','','','','KM/GAL',rend,'']);
-  wsData.push(['']);
-  wsData.push(['Conductor: Alex Villamarín']);
-  wsData.push(['Firma:','_________________________________']);
-  var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:20},{wch:12},{wch:12},{wch:10},{wch:30},{wch:40},{wch:45},{wch:8},{wch:8},{wch:8},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,'Control Km',ws);
-  var fn='CONTROL_KILOMETROS_'+semanaInicio.replace(/\//g,'-')+'.xlsx';
-  XLSX.writeFile(wb,fn);
+  var btn=document.querySelector('[onclick="exportarExcel()"]');
+  if(btn){btn.textContent='Generando...';}
+  fetch(SCRIPT_URL+'?action=excel')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(btn){btn.innerHTML='<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar Excel';}
+      if(data.url){
+        window.open(data.url,'_blank');
+      } else if(data.error){
+        alert('Error: '+data.error);
+      }
+    })
+    .catch(function(){
+      if(btn){btn.innerHTML='Exportar Excel';}
+      alert('Error al generar el Excel. Verifica tu conexión.');
+    });
 }
 
 function actualizarInforme(){
