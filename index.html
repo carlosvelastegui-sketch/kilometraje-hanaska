@@ -548,6 +548,27 @@ function renderTramos(){
 
 function eliminarTramo(i){tramosHoy.splice(i,1);renderTramos();calcKm();}
 
+function subirFotoADrive(inputId, nombreArchivo) {
+  return new Promise(function(resolve) {
+    var input = document.querySelector('#' + inputId + ' input[type=file]');
+    if (!input || !input.files || !input.files[0]) { resolve(null); return; }
+    var file = input.files[0];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var base64 = e.target.result.split(',')[1];
+      var mimeType = file.type || 'image/jpeg';
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ tipo: 'foto', base64: base64, mimeType: mimeType, nombre: nombreArchivo })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) { resolve(res.url || null); })
+      .catch(function() { resolve(null); });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function guardarDia(){
   var ini=parseFloat(document.getElementById('km-ini').value)||0;
   var fin=parseFloat(document.getElementById('km-fin').value)||0;
@@ -576,33 +597,43 @@ function guardarDia(){
   var novedades=tramosHoy.filter(function(t){return t.obs;}).map(function(t){return '* '+t.obs;}).join(' ');
   var diff=Math.abs(km-kmGPS);
   var validacion=kmGPS>0?(diff<=5?'OK – coinciden':'REVISAR – diferencia '+diff+' km'):'Sin GPS';
+  var fechaNombre=fechaStr.replace(/\//g,'-');
 
-  var registro={tipo:'jornada',fecha:fechaStr,dia:diaNombre,kmIni:ini,kmFin:fin,km:km,kmGPS:kmGPS,
-    validacion:validacion,tramos:tramosHoy.slice(),gastos:gastosHoy.slice(),
-    combustible:combustible,galones:parseFloat(galones.toFixed(3)),peajes:peajes,
-    rutaResumen:rutaResumen,novedades:novedades,semanaInicio:semanaInicio};
+  showSync('sync-status','Subiendo fotos...');
 
-  // Enviar a Google Sheet
-  showSync('sync-status','Guardando en la nube...');
-  fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(registro)})
-    .then(function(r){return r.json();})
-    .then(function(res){
-      hideSync('sync-status');
-      if(res.status==='ok'){
+  Promise.all([
+    subirFotoADrive('box-ini', 'Odometro-Inicial-'+diaNombre+'-'+fechaNombre+'.jpg'),
+    subirFotoADrive('box-fin', 'Odometro-Final-'+diaNombre+'-'+fechaNombre+'.jpg')
+  ]).then(function(urls) {
+    var urlIni = urls[0] || '';
+    var urlFin = urls[1] || '';
+
+    var registro={tipo:'jornada',fecha:fechaStr,dia:diaNombre,kmIni:ini,kmFin:fin,km:km,kmGPS:kmGPS,
+      validacion:validacion,tramos:tramosHoy.slice(),gastos:gastosHoy.slice(),
+      combustible:combustible,galones:parseFloat(galones.toFixed(3)),peajes:peajes,
+      rutaResumen:rutaResumen,novedades:novedades,semanaInicio:semanaInicio,
+      fotoIni:urlIni, fotoFin:urlFin};
+
+    showSync('sync-status','Guardando jornada...');
+    fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(registro)})
+      .then(function(r){return r.json();})
+      .then(function(res){
+        hideSync('sync-status');
+        if(res.status==='ok'){
+          registros.push(registro);
+          limpiarFormulario();
+          showAlert('alert-registro','Jornada guardada y fotos subidas correctamente ✓','success');
+        } else {
+          showAlert('alert-registro','Error al sincronizar: '+res.mensaje,'error');
+        }
+      })
+      .catch(function(){
+        hideSync('sync-status');
         registros.push(registro);
         limpiarFormulario();
-        showAlert('alert-registro','Jornada guardada y sincronizada correctamente ✓','success');
-      } else {
-        showAlert('alert-registro','Error al sincronizar: '+res.mensaje,'error');
-      }
-    })
-    .catch(function(){
-      hideSync('sync-status');
-      // Guardar local como respaldo
-      registros.push(registro);
-      limpiarFormulario();
-      showAlert('alert-registro','Guardado localmente (sin conexión). Se sincronizará luego.','error');
-    });
+        showAlert('alert-registro','Guardado localmente (sin conexión).','error');
+      });
+  });
 }
 
 function limpiarFormulario(){
