@@ -85,6 +85,9 @@ textarea{resize:none}
 .precio-tag{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--muted);margin-bottom:1rem;display:flex;gap:12px;flex-wrap:wrap}
 .precio-tag span{font-weight:600;color:var(--text)}
 .sync-bar{background:var(--accent-light);border:1px solid #B8D8CC;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--accent-text);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+/* FIX: indicador de foto persistente */
+.foto-ok-badge{background:var(--accent-light);border:1px solid #B8D8CC;border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--accent-text);margin-top:6px;display:none;align-items:center;gap:6px}
+.foto-ok-badge.visible{display:flex}
 </style>
 </head>
 <body>
@@ -137,12 +140,18 @@ textarea{resize:none}
         <label>Foto y km inicial del odómetro <span style="color:var(--danger)">*obligatorio</span></label>
         <div class="photo-km-row">
           <div>
+            <!-- FIX BUG 1: La foto inicial persiste aunque se navegue entre tabs -->
             <div class="photo-area" id="box-ini">
-              <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this,'prev-ini','box-ini')">
+              <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this,'prev-ini','box-ini','ini')">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
               <p>Toca para foto</p>
             </div>
-            <img id="prev-ini" class="photo-preview" alt="foto inicial" onclick="resetPhoto('prev-ini','box-ini')" style="margin-top:6px">
+            <img id="prev-ini" class="photo-preview" alt="foto inicial" onclick="resetPhoto('prev-ini','box-ini','ini')" style="margin-top:6px">
+            <!-- Indicador visible de foto cargada, persiste al cambiar de tab -->
+            <div class="foto-ok-badge" id="badge-ini">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Foto inicial guardada
+            </div>
           </div>
           <div><label style="margin-bottom:6px">Km inicial</label>
             <input type="number" id="km-ini" placeholder="Ej: 45230" oninput="calcKm()" inputmode="numeric">
@@ -162,11 +171,15 @@ textarea{resize:none}
         <div class="photo-km-row">
           <div>
             <div class="photo-area" id="box-fin">
-              <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this,'prev-fin','box-fin')">
+              <input type="file" accept="image/*" capture="environment" onchange="previewPhoto(this,'prev-fin','box-fin','fin')">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
               <p>Toca para foto</p>
             </div>
-            <img id="prev-fin" class="photo-preview" alt="foto final" onclick="resetPhoto('prev-fin','box-fin')" style="margin-top:6px">
+            <img id="prev-fin" class="photo-preview" alt="foto final" onclick="resetPhoto('prev-fin','box-fin','fin')" style="margin-top:6px">
+            <div class="foto-ok-badge" id="badge-fin">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Foto final guardada
+            </div>
           </div>
           <div><label style="margin-bottom:6px">Km final</label>
             <input type="number" id="km-fin" placeholder="Ej: 45380" oninput="calcKm()" inputmode="numeric">
@@ -181,6 +194,12 @@ textarea{resize:none}
     </div>
 
     <div id="validacion-box" style="display:none" class="validacion"></div>
+
+    <!-- Resumen tramos en pestaña Registro -->
+    <div id="tramos-resumen-registro" style="display:none" class="card" style="margin-bottom:1rem">
+      <div class="card-title">Tramos registrados hoy &nbsp;<span id="km-tramos-reg" style="font-family:'DM Mono',monospace;color:var(--accent);font-size:13px"></span></div>
+      <div id="lista-tramos-reg"></div>
+    </div>
 
     <button class="btn btn-primary" onclick="guardarDia()">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -300,7 +319,6 @@ textarea{resize:none}
 
 </div>
 
-
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi9L64edxUUWTA3_eNEqPuh_8dp5494ZA&libraries=places,directions&language=es&region=EC" async defer onload="initMaps()"></script>
 <script>
 var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz3nqd36hx6iPOs2v8hViYDdpD1BMCmNx51mjHjz5UsbrX9VBWuSzihVacnevLfhh5wUg/exec';
@@ -311,6 +329,9 @@ var coords={origen:null,destino:null};
 var semanaInicio='';
 var fotoIniOk=false;
 var fotoFinOk=false;
+// FIX BUG 1: Guardar el File object de la foto inicial en memoria
+var fotoIniFile=null;
+var fotoFinFile=null;
 
 try{semanaInicio=localStorage.getItem('hsk_semana4')||'';}catch(e){}
 
@@ -330,7 +351,6 @@ var hoy=new Date();
 document.getElementById('fecha-hoy').textContent=hoy.toLocaleDateString('es-EC',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
 if(!semanaInicio){semanaInicio=hoy.toLocaleDateString('es-EC');try{localStorage.setItem('hsk_semana4',semanaInicio);}catch(e){}}
 
-// Cargar datos desde Sheet al iniciar
 cargarDesdeSheet();
 
 function showTab(t){
@@ -339,6 +359,33 @@ function showTab(t){
   document.getElementById('tab-'+t).classList.add('active');
   if(t==='informe'){cargarDesdeSheet();}
   if(t==='rutas')actualizarKmTramos();
+  // FIX BUG 1: Al volver a Registro, restaurar preview de foto inicial si existe
+  if(t==='registro'){
+    restaurarFotoIni();
+    actualizarTramosEnRegistro();
+  }
+}
+
+// FIX BUG 1: Restaurar visualmente la foto inicial al volver a la pestaña
+function restaurarFotoIni(){
+  if(fotoIniOk && fotoIniFile){
+    var img=document.getElementById('prev-ini');
+    if(img.style.display==='none'||!img.src||img.src===window.location.href){
+      img.src=URL.createObjectURL(fotoIniFile);
+      img.style.display='block';
+      document.getElementById('box-ini').style.display='none';
+    }
+    document.getElementById('badge-ini').classList.add('visible');
+  }
+  if(fotoFinOk && fotoFinFile){
+    var imgf=document.getElementById('prev-fin');
+    if(imgf.style.display==='none'||!imgf.src||imgf.src===window.location.href){
+      imgf.src=URL.createObjectURL(fotoFinFile);
+      imgf.style.display='block';
+      document.getElementById('box-fin').style.display='none';
+    }
+    document.getElementById('badge-fin').classList.add('visible');
+  }
 }
 
 function showAlert(id,msg,tipo){
@@ -355,19 +402,22 @@ function showSync(id,msg){
 }
 function hideSync(id){document.getElementById(id).style.display='none';}
 
-function previewPhoto(input,prevId,boxId){
+// FIX BUG 1: Guardar File en variable global para poder restaurar preview
+function previewPhoto(input,prevId,boxId,tipo){
   var file=input.files[0];if(!file)return;
+  if(tipo==='ini'){fotoIniFile=file;fotoIniOk=true;document.getElementById('badge-ini').classList.add('visible');}
+  if(tipo==='fin'){fotoFinFile=file;fotoFinOk=true;document.getElementById('badge-fin').classList.add('visible');}
   var img=document.getElementById(prevId);
   img.src=URL.createObjectURL(file);img.style.display='block';
   document.getElementById(boxId).style.display='none';
-  if(boxId==='box-ini')fotoIniOk=true;
-  if(boxId==='box-fin')fotoFinOk=true;
 }
-function resetPhoto(prevId,boxId){
+
+function resetPhoto(prevId,boxId,tipo){
   document.getElementById(prevId).style.display='none';
+  document.getElementById(prevId).src='';
   document.getElementById(boxId).style.display='';
-  if(boxId==='box-ini')fotoIniOk=false;
-  if(boxId==='box-fin')fotoFinOk=false;
+  if(tipo==='ini'){fotoIniOk=false;fotoIniFile=null;document.getElementById('badge-ini').classList.remove('visible');}
+  if(tipo==='fin'){fotoFinOk=false;fotoFinFile=null;document.getElementById('badge-fin').classList.remove('visible');}
 }
 
 function calcKm(){
@@ -522,14 +572,36 @@ function agregarTramo(){
   if(origen==='Sin capturar'&&destino==='Sin capturar'){alert('Captura el origen y destino con GPS');return;}
   if(!km){alert('Espera a que se calcule la distancia');return;}
   tramosHoy.push({origen:origen,destino:destino,km:km,obs:obs});
-  document.getElementById('km-ruta').value='';document.getElementById('obs-ruta').value='';
-  document.getElementById('input-origen').value='';document.getElementById('input-destino').value='';
-  document.getElementById('txt-origen').textContent='';document.getElementById('txt-destino').textContent='';
-  document.getElementById('loc-origen').style.display='none';document.getElementById('loc-destino').style.display='none';
-  document.getElementById('loc-origen').classList.remove('captured');document.getElementById('loc-destino').classList.remove('captured');
+  // Limpiar SOLO los campos del tramo, NO tocar fotos ni km odómetro
+  document.getElementById('km-ruta').value='';
+  document.getElementById('obs-ruta').value='';
+  document.getElementById('input-origen').value='';
+  document.getElementById('input-destino').value='';
+  document.getElementById('txt-origen').textContent='';
+  document.getElementById('txt-destino').textContent='';
+  document.getElementById('loc-origen').style.display='none';
+  document.getElementById('loc-destino').style.display='none';
+  document.getElementById('loc-origen').classList.remove('captured');
+  document.getElementById('loc-destino').classList.remove('captured');
   try{localStorage.removeItem('hsk_origen');}catch(e){}
   coords={origen:null,destino:null};
-  renderTramos();calcKm();
+  renderTramos();
+  calcKm();
+  actualizarTramosEnRegistro();
+}
+
+// FIX BUG 2: Mostrar resumen de tramos también en la pestaña Registro
+function actualizarTramosEnRegistro(){
+  var box=document.getElementById('tramos-resumen-registro');
+  var lista=document.getElementById('lista-tramos-reg');
+  var kmSpan=document.getElementById('km-tramos-reg');
+  if(!tramosHoy.length){box.style.display='none';return;}
+  box.style.display='block';
+  var total=tramosHoy.reduce(function(a,t){return a+(t.km||0);},0);
+  kmSpan.textContent='— '+total+' km GPS';
+  lista.innerHTML=tramosHoy.map(function(t,i){
+    return '<div class="tramo-item"><div class="tramo-header"><div class="tramo-name">'+t.origen+' → '+t.destino+'</div><span class="tramo-km">'+t.km+' km</span></div>'+(t.obs?'<div class="tramo-obs">📝 '+t.obs+'</div>':'')+'</div>';
+  }).join('');
 }
 
 function actualizarKmTramos(){
@@ -546,17 +618,21 @@ function renderTramos(){
   }).join('');
 }
 
-function eliminarTramo(i){tramosHoy.splice(i,1);renderTramos();calcKm();}
+function eliminarTramo(i){
+  tramosHoy.splice(i,1);
+  renderTramos();
+  calcKm();
+  actualizarTramosEnRegistro();
+}
 
-function subirFotoADrive(inputId, nombreArchivo) {
+// FIX BUG 1: subirFoto usa el File guardado en variable global, no el input DOM
+function subirFotoADrive(fotoFile, nombreArchivo) {
   return new Promise(function(resolve) {
-    var input = document.querySelector('#' + inputId + ' input[type=file]');
-    if (!input || !input.files || !input.files[0]) { resolve(null); return; }
-    var file = input.files[0];
+    if (!fotoFile) { resolve(null); return; }
     var reader = new FileReader();
     reader.onload = function(e) {
       var base64 = e.target.result.split(',')[1];
-      var mimeType = file.type || 'image/jpeg';
+      var mimeType = fotoFile.type || 'image/jpeg';
       fetch(SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify({ tipo: 'foto', base64: base64, mimeType: mimeType, nombre: nombreArchivo })
@@ -565,7 +641,7 @@ function subirFotoADrive(inputId, nombreArchivo) {
       .then(function(res) { resolve(res.url || null); })
       .catch(function() { resolve(null); });
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(fotoFile);
   });
 }
 
@@ -573,7 +649,6 @@ function guardarDia(){
   var ini=parseFloat(document.getElementById('km-ini').value)||0;
   var fin=parseFloat(document.getElementById('km-fin').value)||0;
 
-  // Validar fotos obligatorias
   if(!fotoIniOk){
     document.getElementById('box-ini').classList.add('required-missing');
     showAlert('alert-registro','La foto del odómetro inicial es obligatoria','error');return;
@@ -593,26 +668,50 @@ function guardarDia(){
   var combustible=gastosHoy.filter(function(g){return g.tipo==='comb';}).reduce(function(a,g){return a+g.valor;},0);
   var galones=gastosHoy.filter(function(g){return g.tipo==='comb';}).reduce(function(a,g){return a+g.gal;},0);
   var peajes=gastosHoy.filter(function(g){return g.tipo==='peaje';}).reduce(function(a,g){return a+g.valor;},0);
-  var rutaResumen=tramosHoy.map(function(t){return t.destino;}).join(', ');
+
+  // FIX BUG 2: Construir rutaResumen con TODOS los tramos (origen → destino)
+  var rutaResumen=tramosHoy.map(function(t){return t.origen+' → '+t.destino;}).join(' | ');
   var novedades=tramosHoy.filter(function(t){return t.obs;}).map(function(t){return '* '+t.obs;}).join(' ');
+  // FIX BUG 2: Serializar tramos como texto para el Sheet
+  var tramosTexto=tramosHoy.map(function(t,i){return (i+1)+') '+t.origen+' → '+t.destino+' ('+t.km+' km)'+(t.obs?' – '+t.obs:'');}).join('\n');
+
   var diff=Math.abs(km-kmGPS);
   var validacion=kmGPS>0?(diff<=5?'OK – coinciden':'REVISAR – diferencia '+diff+' km'):'Sin GPS';
   var fechaNombre=fechaStr.replace(/\//g,'-');
 
   showSync('sync-status','Subiendo fotos...');
 
+  // FIX BUG 1: Pasar File directamente, no leer del DOM
   Promise.all([
-    subirFotoADrive('box-ini', 'Odometro-Inicial-'+diaNombre+'-'+fechaNombre+'.jpg'),
-    subirFotoADrive('box-fin', 'Odometro-Final-'+diaNombre+'-'+fechaNombre+'.jpg')
+    subirFotoADrive(fotoIniFile, 'Odometro-Inicial-'+diaNombre+'-'+fechaNombre+'.jpg'),
+    subirFotoADrive(fotoFinFile, 'Odometro-Final-'+diaNombre+'-'+fechaNombre+'.jpg')
   ]).then(function(urls) {
     var urlIni = urls[0] || '';
     var urlFin = urls[1] || '';
 
-    var registro={tipo:'jornada',fecha:fechaStr,dia:diaNombre,kmIni:ini,kmFin:fin,km:km,kmGPS:kmGPS,
-      validacion:validacion,tramos:tramosHoy.slice(),gastos:gastosHoy.slice(),
-      combustible:combustible,galones:parseFloat(galones.toFixed(3)),peajes:peajes,
-      rutaResumen:rutaResumen,novedades:novedades,semanaInicio:semanaInicio,
-      fotoIni:urlIni, fotoFin:urlFin};
+    var registro={
+      tipo:'jornada',
+      fecha:fechaStr,
+      dia:diaNombre,
+      kmIni:ini,
+      kmFin:fin,
+      km:km,
+      kmGPS:kmGPS,
+      validacion:validacion,
+      // FIX BUG 2: Enviar tramos como array Y como texto serializado
+      tramos:tramosHoy.slice(),
+      tramosTexto:tramosTexto,
+      cantidadTramos:tramosHoy.length,
+      gastos:gastosHoy.slice(),
+      combustible:combustible,
+      galones:parseFloat(galones.toFixed(3)),
+      peajes:peajes,
+      rutaResumen:rutaResumen,
+      novedades:novedades,
+      semanaInicio:semanaInicio,
+      fotoIni:urlIni,
+      fotoFin:urlFin
+    };
 
     showSync('sync-status','Guardando jornada...');
     fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(registro)})
@@ -637,16 +736,26 @@ function guardarDia(){
 }
 
 function limpiarFormulario(){
-  tramosHoy=[];gastosHoy=[];fotoIniOk=false;fotoFinOk=false;
-  document.getElementById('km-ini').value='';document.getElementById('km-fin').value='';
+  tramosHoy=[];gastosHoy=[];
+  fotoIniOk=false;fotoFinOk=false;
+  fotoIniFile=null;fotoFinFile=null;
+  document.getElementById('km-ini').value='';
+  document.getElementById('km-fin').value='';
   document.getElementById('km-dia').textContent='0';
   document.getElementById('validacion-box').style.display='none';
   document.getElementById('lista-rutas').innerHTML='<div class="empty">Sin tramos registrados aún</div>';
   document.getElementById('lista-gastos').innerHTML='<div class="empty">Sin gastos registrados aún</div>';
-  document.getElementById('prev-ini').style.display='none';document.getElementById('box-ini').style.display='';
-  document.getElementById('prev-fin').style.display='none';document.getElementById('box-fin').style.display='';
+  document.getElementById('prev-ini').style.display='none';
+  document.getElementById('prev-ini').src='';
+  document.getElementById('box-ini').style.display='';
+  document.getElementById('prev-fin').style.display='none';
+  document.getElementById('prev-fin').src='';
+  document.getElementById('box-fin').style.display='';
   document.getElementById('box-ini').classList.remove('required-missing');
   document.getElementById('box-fin').classList.remove('required-missing');
+  document.getElementById('badge-ini').classList.remove('visible');
+  document.getElementById('badge-fin').classList.remove('visible');
+  document.getElementById('tramos-resumen-registro').style.display='none';
   calcKm();
 }
 
