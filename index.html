@@ -362,7 +362,33 @@ try {
       tramosHoy = estado.tramos || [];
       gastosHoy = estado.gastos || [];
       if (estado.kmIni) setTimeout(function(){ document.getElementById('km-ini').value = estado.kmIni; calcKm(); }, 300);
-      if (estado.fotoIniOk) fotoIniOk = true;
+      if (estado.fotoIniOk) {
+        fotoIniOk = true;
+        // Mostrar badge indicando que foto ya está en Drive
+        setTimeout(function(){
+          document.getElementById('badge-ini').classList.add('visible');
+          document.getElementById('badge-ini').innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Foto inicial en Drive ✓';
+          // Ocultar botones de foto y mostrar mensaje
+          var boxIni = document.getElementById('box-ini');
+          var divFoto = document.createElement('div');
+          divFoto.style.cssText = 'background:var(--accent-light);border:1px solid #B8D8CC;border-radius:var(--radius-sm);padding:10px;font-size:13px;color:var(--accent-text);text-align:center;position:relative';
+          divFoto.innerHTML = '📷 Foto inicial ya guardada en Drive<br><span style="font-size:11px;color:var(--muted)">Toca para reemplazar</span>';
+          var inputRepl = document.createElement('input');
+          inputRepl.type = 'file'; inputRepl.accept = 'image/*';
+          inputRepl.style.cssText = 'position:absolute;inset:0;opacity:0;cursor:pointer';
+          inputRepl.onchange = function(){ previewPhoto(this,'prev-ini','box-ini','ini'); };
+          divFoto.appendChild(inputRepl);
+          boxIni.innerHTML = '';
+          boxIni.appendChild(divFoto);
+        }, 400);
+      }
+      if (estado.fotoFinOk) {
+        fotoFinOk = true;
+        setTimeout(function(){
+          document.getElementById('badge-fin').classList.add('visible');
+          document.getElementById('badge-fin').innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Foto final en Drive ✓';
+        }, 400);
+      }
     } else {
       localStorage.removeItem('hsk_estado_dia');
     }
@@ -394,7 +420,8 @@ function guardarEstadoLocal(){
       tramos: tramosHoy,
       gastos: gastosHoy,
       kmIni: document.getElementById('km-ini').value,
-      fotoIniOk: fotoIniOk
+      fotoIniOk: fotoIniOk,
+      fotoFinOk: fotoFinOk
     }));
   } catch(e) {}
 }
