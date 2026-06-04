@@ -485,8 +485,30 @@ function hideSync(id){document.getElementById(id).style.display='none';}
 // FIX BUG 1: Guardar File en variable global para poder restaurar preview
 function previewPhoto(input,prevId,boxId,tipo){
   var file=input.files[0];if(!file)return;
-  if(tipo==='ini'){fotoIniFile=file;fotoIniOk=true;document.getElementById('badge-ini').classList.add('visible');}
-  if(tipo==='fin'){fotoFinFile=file;fotoFinOk=true;document.getElementById('badge-fin').classList.add('visible');}
+  if(tipo==='ini'){
+    fotoIniFile=file;fotoIniOk=true;
+    document.getElementById('badge-ini').classList.add('visible');
+    // Subir foto inicial inmediatamente y guardar URL
+    var hoyTemp=new Date();
+    var diasN=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+    var fechaN=hoyTemp.toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\//g,'-');
+    var nombreF='Odometro-Inicial-'+diasN[hoyTemp.getDay()]+'-'+fechaN+'.jpg';
+    subirFotoADrive(file, nombreF).then(function(url){
+      if(url){ try{localStorage.setItem('hsk_foto_ini_url', url);}catch(e){} }
+    });
+  }
+  if(tipo==='fin'){
+    fotoFinFile=file;fotoFinOk=true;
+    document.getElementById('badge-fin').classList.add('visible');
+    // Subir foto final inmediatamente y guardar URL
+    var hoyTemp2=new Date();
+    var diasN2=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+    var fechaN2=hoyTemp2.toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'}).replace(/\//g,'-');
+    var nombreF2='Odometro-Final-'+diasN2[hoyTemp2.getDay()]+'-'+fechaN2+'.jpg';
+    subirFotoADrive(file, nombreF2).then(function(url){
+      if(url){ try{localStorage.setItem('hsk_foto_fin_url', url);}catch(e){} }
+    });
+  }
   var img=document.getElementById(prevId);
   img.src=URL.createObjectURL(file);img.style.display='block';
   document.getElementById(boxId).style.display='none';
@@ -778,18 +800,16 @@ function guardarDia(){
   var validacion=kmGPS>0?(diff<=5?'OK – coinciden':'REVISAR – diferencia '+diff+' km'):'Sin GPS';
   var fechaNombre=fechaStr.replace(/\//g,'-');
 
-  showSync('sync-status','Subiendo fotos...');
+  // Recuperar URLs de fotos ya subidas
+  var urlIni = ''; var urlFin = '';
+  try { urlIni = localStorage.getItem('hsk_foto_ini_url') || ''; } catch(e) {}
+  try { urlFin = localStorage.getItem('hsk_foto_fin_url') || ''; } catch(e) {}
 
-  // FIX BUG 1: Pasar File directamente, no leer del DOM
-  Promise.all([
-    subirFotoADrive(fotoIniFile, 'Odometro-Inicial-'+diaNombre+'-'+fechaNombre+'.jpg'),
-    subirFotoADrive(fotoFinFile, 'Odometro-Final-'+diaNombre+'-'+fechaNombre+'.jpg')
-  ]).then(function(urls) {
+  showSync('sync-status','Guardando jornada...');
+
+  Promise.resolve([urlIni, urlFin]).then(function(urls) {
     var urlIni = urls[0] || '';
     var urlFin = urls[1] || '';
-    // Si la foto inicial ya estaba guardada (recuperada de localStorage), usar esa URL
-    if (!urlIni) { try { urlIni = localStorage.getItem('hsk_foto_ini_url') || ''; } catch(e) {} }
-    if (!urlFin) { try { urlFin = localStorage.getItem('hsk_foto_fin_url') || ''; } catch(e) {} }
 
     var registro={
       tipo:'jornada',
@@ -815,7 +835,6 @@ function guardarDia(){
       fotoFin:urlFin
     };
 
-    showSync('sync-status','Guardando jornada...');
     fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(registro)})
       .then(function(r){return r.json();})
       .then(function(res){
