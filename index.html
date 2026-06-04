@@ -727,7 +727,17 @@ function subirFotoADrive(fotoFile, nombreArchivo) {
         body: JSON.stringify({ tipo: 'foto', base64: base64, mimeType: mimeType, nombre: nombreArchivo })
       })
       .then(function(r) { return r.json(); })
-      .then(function(res) { resolve(res.url || null); })
+      .then(function(res) {
+        var url = res.url || null;
+        // Guardar URL en localStorage según el nombre del archivo
+        if (url && nombreArchivo.indexOf('Inicial') >= 0) {
+          try { localStorage.setItem('hsk_foto_ini_url', url); } catch(e) {}
+        }
+        if (url && nombreArchivo.indexOf('Final') >= 0) {
+          try { localStorage.setItem('hsk_foto_fin_url', url); } catch(e) {}
+        }
+        resolve(url);
+      })
       .catch(function() { resolve(null); });
     };
     reader.readAsDataURL(fotoFile);
@@ -777,6 +787,9 @@ function guardarDia(){
   ]).then(function(urls) {
     var urlIni = urls[0] || '';
     var urlFin = urls[1] || '';
+    // Si la foto inicial ya estaba guardada (recuperada de localStorage), usar esa URL
+    if (!urlIni) { try { urlIni = localStorage.getItem('hsk_foto_ini_url') || ''; } catch(e) {} }
+    if (!urlFin) { try { urlFin = localStorage.getItem('hsk_foto_fin_url') || ''; } catch(e) {} }
 
     var registro={
       tipo:'jornada',
@@ -811,7 +824,7 @@ function guardarDia(){
           registros.push(registro);
           limpiarFormulario();
           showAlert('alert-registro','Jornada guardada y fotos subidas correctamente ✓','success');
-          try{localStorage.removeItem('hsk_estado_dia');}catch(e){}
+          try{localStorage.removeItem('hsk_estado_dia');localStorage.removeItem('hsk_foto_ini_url');localStorage.removeItem('hsk_foto_fin_url');}catch(e){}
         } else {
           showAlert('alert-registro','Error al sincronizar: '+res.mensaje,'error');
         }
