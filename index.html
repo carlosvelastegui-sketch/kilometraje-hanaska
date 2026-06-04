@@ -301,7 +301,7 @@ textarea{resize:none}
 </div>
 
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi9L64edxUUWTA3_eNEqPuh_8dp5494ZA&libraries=places&language=es&region=EC" async defer onload="initMaps()"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBi9L64edxUUWTA3_eNEqPuh_8dp5494ZA&libraries=places,directions&language=es&region=EC" async defer onload="initMaps()"></script>
 <script>
 var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz3nqd36hx6iPOs2v8hViYDdpD1BMCmNx51mjHjz5UsbrX9VBWuSzihVacnevLfhh5wUg/exec';
 var registros=[];
@@ -489,16 +489,23 @@ function capturarGPS(tipo) {
 }
 
 function calcDistanciaRuta(){
-  var o=coords.origen;var d=coords.destino;if(!o||!d)return;
+  var o=coords.origen;var d=coords.destino;
+  if(!o||!d||!o.lat||!d.lat)return;
   var kmInput=document.getElementById('km-ruta');
   kmInput.value='Calculando...';
-  fetch('https://router.project-osrm.org/route/v1/driving/'+o.lon+','+o.lat+';'+d.lon+','+d.lat+'?overview=false')
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(data.routes&&data.routes[0]){kmInput.value=Math.round(data.routes[0].distance/1000*10)/10;}
-      else{kmInput.value=calcDistanciaLineal(o.lat,o.lon,d.lat,d.lon);}
-    })
-    .catch(function(){kmInput.value=calcDistanciaLineal(o.lat,o.lon,d.lat,d.lon);});
+  var service=new google.maps.DirectionsService();
+  service.route({
+    origin:{lat:o.lat,lng:o.lon},
+    destination:{lat:d.lat,lng:d.lon},
+    travelMode:google.maps.TravelMode.DRIVING
+  },function(result,status){
+    if(status==='OK'){
+      var metros=result.routes[0].legs[0].distance.value;
+      kmInput.value=Math.round(metros/1000*10)/10;
+    } else {
+      kmInput.value=calcDistanciaLineal(o.lat,o.lon,d.lat,d.lon);
+    }
+  });
 }
 
 function calcDistanciaLineal(lat1,lon1,lat2,lon2){
