@@ -352,6 +352,23 @@ var fotoFinFile=null;
 
 try{semanaInicio=localStorage.getItem('hsk_semana4')||'';}catch(e){}
 
+// GUARDADO AUTOMATICO: recuperar estado del dia al abrir
+try {
+  var estadoGuardado = localStorage.getItem('hsk_estado_dia');
+  if (estadoGuardado) {
+    var estado = JSON.parse(estadoGuardado);
+    var hoyStr = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
+    if (estado.fecha === hoyStr) {
+      tramosHoy = estado.tramos || [];
+      gastosHoy = estado.gastos || [];
+      if (estado.kmIni) setTimeout(function(){ document.getElementById('km-ini').value = estado.kmIni; calcKm(); }, 300);
+      if (estado.fotoIniOk) fotoIniOk = true;
+    } else {
+      localStorage.removeItem('hsk_estado_dia');
+    }
+  }
+} catch(e) {}
+
 // Recuperar origen guardado si existe
 try {
   var origenGuardado = localStorage.getItem('hsk_origen');
@@ -368,7 +385,28 @@ var hoy=new Date();
 document.getElementById('fecha-hoy').textContent=hoy.toLocaleDateString('es-EC',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
 if(!semanaInicio){semanaInicio=hoy.toLocaleDateString('es-EC');try{localStorage.setItem('hsk_semana4',semanaInicio);}catch(e){}}
 
+// Guardar estado en localStorage automaticamente
+function guardarEstadoLocal(){
+  try {
+    var hoyStr2 = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
+    localStorage.setItem('hsk_estado_dia', JSON.stringify({
+      fecha: hoyStr2,
+      tramos: tramosHoy,
+      gastos: gastosHoy,
+      kmIni: document.getElementById('km-ini').value,
+      fotoIniOk: fotoIniOk
+    }));
+  } catch(e) {}
+}
+
 cargarDesdeSheet();
+
+// Restaurar visualmente tramos y gastos guardados
+setTimeout(function(){
+  if(tramosHoy.length){ renderTramos(); actualizarTramosEnRegistro(); calcKm(); }
+  if(gastosHoy.length){ renderGastos(); }
+  if(fotoIniOk){ document.getElementById('badge-ini').classList.add('visible'); }
+}, 500);
 
 function showTab(t){
   document.querySelectorAll('.tab,.section').forEach(function(e){e.classList.remove('active');});
@@ -442,6 +480,7 @@ function resetFoto(tipo){
 }
 
 function calcKm(){
+  guardarEstadoLocal();
   var ini=parseFloat(document.getElementById('km-ini').value)||0;
   var fin=parseFloat(document.getElementById('km-fin').value)||0;
   var dia=fin>ini?Math.round(fin-ini):0;
@@ -609,6 +648,7 @@ function agregarTramo(){
   renderTramos();
   calcKm();
   actualizarTramosEnRegistro();
+  guardarEstadoLocal();
 }
 
 // FIX BUG 2: Mostrar resumen de tramos también en la pestaña Registro
@@ -644,6 +684,7 @@ function eliminarTramo(i){
   renderTramos();
   calcKm();
   actualizarTramosEnRegistro();
+  guardarEstadoLocal();
 }
 
 // FIX BUG 1: subirFoto usa el File guardado en variable global, no el input DOM
@@ -743,6 +784,7 @@ function guardarDia(){
           registros.push(registro);
           limpiarFormulario();
           showAlert('alert-registro','Jornada guardada y fotos subidas correctamente ✓','success');
+          try{localStorage.removeItem('hsk_estado_dia');}catch(e){}
         } else {
           showAlert('alert-registro','Error al sincronizar: '+res.mensaje,'error');
         }
@@ -787,6 +829,7 @@ function agregarCombustible(){
   gastosHoy.push({tipo:'comb',desc:tipo+(est?' – '+est:''),valor:costo,gal:gal});
   document.getElementById('gal').value='';document.getElementById('costo-comb').value='';document.getElementById('estacion').value='';
   renderGastos();
+  guardarEstadoLocal();
 }
 
 function agregarPeaje(){
@@ -796,6 +839,7 @@ function agregarPeaje(){
   gastosHoy.push({tipo:'peaje',desc:'Peaje'+(lugar?' – '+lugar:''),valor:valor,gal:0});
   document.getElementById('peaje-lugar').value='';document.getElementById('peaje-valor').value='';
   renderGastos();
+  guardarEstadoLocal();
 }
 
 function renderGastos(){
