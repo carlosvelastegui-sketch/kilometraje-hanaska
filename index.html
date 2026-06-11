@@ -857,11 +857,11 @@ function guardarDia(){
   var galones=gastosHoy.filter(function(g){return g.tipo==='comb';}).reduce(function(a,g){return a+g.gal;},0);
   var peajes=gastosHoy.filter(function(g){return g.tipo==='peaje';}).reduce(function(a,g){return a+g.valor;},0);
 
-  // FIX BUG 2: Construir rutaResumen con TODOS los tramos (origen → destino)
-  var rutaResumen=tramosHoy.map(function(t){return t.origen+' → '+t.destino;}).join(' | ');
+  // Mostrar nombre corto de la ruta en el reporte
+  var rutaResumen=tramosHoy.map(function(t){return t.ruta||t.origen+' → '+t.destino;}).join(' | ');
   var novedades=tramosHoy.filter(function(t){return t.obs;}).map(function(t){return '* '+t.obs;}).join(' ');
   // FIX BUG 2: Serializar tramos como texto para el Sheet
-  var tramosTexto=tramosHoy.map(function(t,i){return (i+1)+') '+t.origen+' → '+t.destino+' ('+t.km+' km)'+(t.obs?' – '+t.obs:'');}).join('\n');
+  var tramosTexto=tramosHoy.map(function(t,i){return (i+1)+') '+(t.ruta||t.origen+' → '+t.destino)+' ('+t.km+' km)'+(t.obs?' – '+t.obs:'');}).join('\n');
 
   var diff=Math.abs(km-kmGPS);
   var validacion=kmGPS>0?(diff<=5?'OK – coinciden':'REVISAR – diferencia '+diff+' km'):'Sin GPS';
